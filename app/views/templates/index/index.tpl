@@ -3,17 +3,18 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>首页</title>
+<link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+<link rel="icon" href="favicon.ico" type="image/x-icon">
 </head>
 
 <body>
-	<!-- <p>test{{$smarty.now}}</p> -->
-	<!-- <p>{{$key}}</p> -->
+	
 	{{if $userinfo neq null}}
-	{{foreach from=$userinfo key=key item=value}}
-		<p>{{$key}}:{{$value}}</p>
-	{{/foreach}}
+		{{foreach from=$userinfo key=key item=value}}
+			<p>{{$key}}:{{$value}}</p>
+		{{/foreach}}
 	{{else}}
-	<p>nothing.</p>
+		<p>nothing.</p>
 	{{/if}}
 </body>
 </html>

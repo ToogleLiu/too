@@ -1,5 +1,8 @@
 <?php
-
+/**
+* 用户表
+* 操作用户数据类
+*/
 class User
 {
 	const TABLE_NAME = 'user';	//表名

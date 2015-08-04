@@ -39,7 +39,9 @@ class DbBase
 	public function checkTableName()
 	{
 		if (!is_string(self::$table_name) || empty(self::$table_name)) {
-			Utils::throwException('The table name is invalid:[%s]', var_export($table_name,1));
+			// Utils::throwException('The table name is invalid:[%s]', var_export($table_name,1));
+			Log::fatal('The table name is invalid:[%s]', var_export($table_name,1));
+			trigger_error('The table name is invalid:['. var_export($table_name,1) .']', E_USER_ERROR);
 		}
 	}
 
@@ -92,6 +94,15 @@ class DbBase
 			$sql .= ' LIMIT 1';
 		}
 
+		//将SQL写入日志
+		if (strpos($sql, '?') !== false && isset($where['where_arr'])) {
+			$logSql = str_replace('?', '"%s"', $sql);
+			$logSql = vsprintf($logSql, $where['where_arr']);
+			Log::debug('execute SQL: %s', $logSql);
+		} else {
+			Log::debug('execute SQL: %s', $sql);
+		}
+
 		$stmt = $this->conn->prepare($sql);
 		if (isset($where['where_arr']) && !empty($where['where_arr'])) {
 			$stmt->execute($where['where_arr']);
@@ -131,6 +142,12 @@ class DbBase
 		if (empty($sql) || !is_array($param_arr)) {
 			return false;
 		}
+		if (!empty($param_arr)) {
+			$param_arr = array_map(array('self','htmlspecialchars_deep'), $param_arr);
+		}
+
+		Log::debug('Method findBySql. sql:[%s] params:[%s]', $sql, var_export($param_arr, 1));
+
 		$stmt = $this->conn->prepare($sql);
 		$stmt->execute($param_arr);
 		return $stmt->fetch($fetch_style);
@@ -148,6 +165,12 @@ class DbBase
 		if (empty($sql) || !is_array($param_arr)) {
 			return false;
 		}
+		if (!empty($param_arr)) {
+			$param_arr = array_map(array('self','htmlspecialchars_deep'), $param_arr);
+		}
+
+		Log::debug('Method findAllBySql. sql:[%s] params:[%s]', $sql, var_export($param_arr, 1));
+
 		$stmt = $this->conn->prepare($sql);
 		$stmt->execute($param_arr);
 		return $stmt->fetchAll($fetch_style);
@@ -163,6 +186,9 @@ class DbBase
 		if (!is_array($param_arr) || empty($param_arr)) {
 			return false;
 		}
+
+		$param_arr = array_map(array('self','htmlspecialchars_deep'), $param_arr);
+		
 		//验证表名
 		$this->checkTableName();
 
@@ -170,6 +196,11 @@ class DbBase
 		$place_holders = implode(',', array_fill(0, count($param_arr), '?'));
 
 		$sql = sprintf('INSERT INTO %s (%s) VALUES (%s)', self::$table_name, $fields, $place_holders);
+
+		//将SQL写入日志
+		$logSql = str_replace('?', '"%s"', $sql);
+		$logSql = vsprintf($logSql, $param_arr);
+		Log::debug('execute SQL: %s', $logSql);
 
 		$stmt = $this->conn->prepare($sql);
 		$stmt->execute(array_values($param_arr));
@@ -194,8 +225,11 @@ class DbBase
 		//验证表名
 		$this->checkTableName();
 
+		$param_arr = array_map(array('self','htmlspecialchars_deep'), $param_arr);
+
 		$fieldSql = '';
 		$first = true;
+		$exec_param_arr = array();
 		foreach ($param_arr as $key => $value) {
 			if ($first == true) {
 				$first = false;
@@ -203,6 +237,7 @@ class DbBase
 			} else {
 				$fieldSql .= ',' . $key . '=:' . $key;
 			}
+			$exec_param_arr[':'.$key] = $value;
 		}
 
 		$whereSql = '';
@@ -225,14 +260,21 @@ class DbBase
 			$where = $this->buildWhere($condition);
 			if (!empty($where['where_arr'])) {
 				$whereSql .= ' WHERE ' . $where['whereSql'];
-				$param_arr = array_merge($param_arr, $where['where_arr']);
+				$exec_param_arr = array_merge($exec_param_arr, $where['where_arr']);
 			}
 		}
 
 		$sql = 'UPDATE '. self::$table_name .' SET ' . $fieldSql . $whereSql;
 
+		//将sql写入日志
+		$logSql = $sql;
+		foreach ($exec_param_arr as $key => $value) {
+			$logSql = str_replace($key, '\''.$value.'\'', $logSql);
+		}
+		Log::debug($logSql);
+
 		$stmt = $this->conn->prepare($sql);
-		$stmt->execute($param_arr);
+		$stmt->execute($exec_param_arr);
 		$count = $stmt->rowCount();
 		if ($count > 0) {
 			return $count;
@@ -262,6 +304,16 @@ class DbBase
 		}
 
 		$sql = 'DELETE FROM ' . self::$table_name . $whereSql;
+
+		//将SQL写入日志
+		if (strpos($sql, '?') !== false && isset($where['where_arr'])) {
+			$logSql = str_replace('?', '"%s"', $sql);
+			$logSql = vsprintf($logSql, $where['where_arr']);
+			Log::debug('execute SQL: %s', $logSql);
+		} else {
+			Log::debug('execute SQL: %s', $sql);
+		}
+
 		$stmt = $this->conn->prepare($sql);
 		if (isset($where['where_arr']) && !empty($where['where_arr'])) {
 			$stmt->execute($where['where_arr']);
@@ -286,6 +338,10 @@ class DbBase
 		if (empty($sql) || empty($param_arr)) {
 			return false;
 		}
+
+		$param_arr = array_map(array('self','htmlspecialchars_deep'), $param_arr);
+
+		Log::debug('Method executeSql. sql:[%s] params:[%s]', $sql, var_export($param_arr, 1));
 
 		$stmt = $this->conn->prepare($sql);
 		$stmt->execute($param_arr);
@@ -338,6 +394,12 @@ class DbBase
 						}
 					}
 					if (is_scalar($value[0]) && is_scalar($value[1])) {
+						
+						$value[1] = strtoupper(trim($value[1]));
+						if ($value[1] == 'LIKE') {
+							$value[0] = $this->handleLike($value[0]);
+						}
+
 						$whereSql .= ' AND ' . $key . ' ' . $value[1] . ' ' . ':' . $unique . $key;
 						$where_arr[':' . $unique . $key] = $value[0];
 					}
@@ -348,6 +410,9 @@ class DbBase
 				$whereSql .= ' AND ' . $key . '=:' . $unique . $key;
 				$where_arr[':' . $unique . $key] = $value;
 			}
+		}
+		if (!empty($where_arr)) {
+			$where_arr = array_map(array('self','htmlspecialchars_deep'), $where_arr);
 		}
 		return array('whereSql' => $whereSql, 'where_arr' => $where_arr);
 	}
@@ -390,6 +455,12 @@ class DbBase
 						}
 					}
 					if (is_scalar($value[0]) && is_scalar($value[1])) {
+						
+						$value[1] = strtoupper(trim($value[1]));
+						if ($value[1] == 'LIKE') {
+							$value[0] = $this->handleLike($value[0]);
+						}
+
 						$whereSql .= ' AND ' . $key . ' ' . $value[1] . ' ?';
 						array_push($where_arr, $value[0]);
 					}
@@ -401,7 +472,44 @@ class DbBase
 				array_push($where_arr, $value);
 			}
 		}
+		if (!empty($where_arr)) {
+			$where_arr = array_map(array('self','htmlspecialchars_deep'), $where_arr);
+		}
 		return array('whereSql' => $whereSql, 'where_arr' => $where_arr);
+	}
+
+	/**
+	* 处理like，将like的值中的'%'前加上'\'
+	* @param string $str like的值 eg:'%ee%dd%' 转化成了 '%ee\%dd%'
+	*
+	*/
+	public function handleLike($str)
+	{
+		$str = trim($str);
+		if (empty($str)) {
+			Log::fatal('Like SQL string is empty.');
+			trigger_error('Like SQL string is empty.', E_USER_ERROR);
+		}
+
+		$arr = str_split($str);
+		$len = count($arr);
+		$first = $end = '';
+		if ($arr[0] == '%') {
+			$first = $arr[0];
+			unset($arr[0]);
+		}
+		if (end($arr) == '%') {
+			$end = end($arr);
+			unset($arr[$len-1]);
+		}
+
+		$str = implode('', $arr);
+		if ($str == '_') {
+			$str = str_replace('_', '\_', $str);
+		}
+		$str = str_replace('%', '\%', $str);
+		
+		return $first . $str . $end;
 	}
 
 	/**
@@ -445,6 +553,20 @@ class DbBase
 		}
 
 		return !empty($orderStr) ? ' ORDER BY ' . $orderStr : '';
+	}
+
+	/**
+	* 将<、>、&、'、" 转成字符实体，防止XSS
+	* 通过array_map()调用
+	*/
+	public static function htmlspecialchars_deep($value)
+	{
+		if (is_array($value)) {
+			$value = array_map(array('self','htmlspecialchars_deep'), $value);
+		} else if (is_string($value)) {
+			$value = htmlspecialchars($value, ENT_QUOTES);
+		}
+		return $value;
 	}
 
 

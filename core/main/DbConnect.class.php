@@ -28,8 +28,8 @@ class DbConnect
 	public function connectDb()
 	{
 		try {
-			$conn = new PDO('mysql:dbname=helloDb;host=127.0.0.1;charset=UTF8','root','222222');
-			$conn->query("set names UTF8");
+			$conn = new PDO('mysql:dbname='. DBConfig::DB_NAME .';host='. DBConfig::DB_HOST .';charset=' . DBConfig::CHARSET, DBConfig::USER_NAME, DBConfig::PASSWORD);
+			$conn->query("set names " . DBConfig::CHARSET);
 			$conn->setAttribute(PDO::ATTR_EMULATE_PREPARES, FALSE);	//php 5.3.6 以前需要设置为false，以防止SQL注入
 			$conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 			return $conn;

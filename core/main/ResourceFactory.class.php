@@ -1,5 +1,7 @@
 <?php
-
+/**
+* 获取smarty资源
+*/
 class ResourceFactory
 {
 	private static $smarty = NULL;

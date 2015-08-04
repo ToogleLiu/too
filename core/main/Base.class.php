@@ -1,8 +1,11 @@
 <?php
-
+/**
+* 获取smarty对象，并封装smarty常用方法
+*
+*/
 class Base
 {
-	public $controller = '';
+	public $controller = '';	//controller name
 	public $smarty = NULL;
 
 	public function __construct($controller)
@@ -25,8 +28,5 @@ class Base
 	{
 		$this->smarty->assign($key, $value);
 	}
-
-	
-
 
 }

@@ -1,5 +1,7 @@
 <?php
-
+/**
+* 所有controller的父类
+*/
 class Controller extends Base
 {
 	protected static $params = array();
@@ -15,6 +17,9 @@ class Controller extends Base
 		throw new Exception('Not found the method: ['.var_export($method, 1).']');
 	}
 
+	/**
+	* 获取POST, GET参数 eg: $this->get('id') == $_GET['id']
+	*/
 	protected function get($field)
 	{
 		if (isset(self::$params[$field])) {

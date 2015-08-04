@@ -36,6 +36,13 @@ class Utils
 		return array_values($array);
 	}
 
+	/**
+	* 验证是否为整数，若传了$min, $max 则表示$min <= $value <= $max
+	* @param $value 需要验证的值
+	* @param $min 最小值
+	* @param $max 最大值
+	* @return bool 为true表示验证通过，false反之
+	*/
 	public static function check_int($value, $min = NULL, $max = NULL)
 	{
 		if (!preg_match('/^\d+$/', $value)) {
@@ -65,6 +72,11 @@ class Utils
 		}
 	}
 
+	/**
+	* 验证是否为合法的整数（同上）
+	* @param array $arr  eg: array($num, 100, 500) 表示100 <= $num <= 500
+	* @return bool
+	*/
 	public static function check_int_arr($arr)
 	{
 		if (!is_array($arr) || empty($arr)) {
@@ -76,6 +88,13 @@ class Utils
 		return self::check_int($value, $min, $max);
 	}
 
+	/**
+	* 验证是否为合法的字符串
+	* @param $str 需要验证的参数
+	* @param $min_length 最小长度
+	* @param $max_length 最大长度
+	* @return bool 为true表示验证通过，false反之
+	*/
 	public static function check_string($str, $min_length = NULL, $max_length = NULL)
 	{
 		if (!is_scalar($str)) {
@@ -93,6 +112,11 @@ class Utils
 		return TRUE;
 	}
 
+	/**
+	* 验证是否为合法的字符串
+	* @param array $arr eg: array($str, $min_length, $max_length)
+	* @return bool
+	*/
 	public static function check_string_arr($arr)
 	{
 		if (!is_array($arr) || empty($arr)) {
@@ -141,7 +165,9 @@ class Utils
 		}
 	}
 
-
+	/**
+	* 抛异常
+	*/
 	public static function throwException()
 	{
 		$args = func_get_args();
@@ -258,5 +284,60 @@ class Utils
 				}
 			}
 		}
+	}
+
+	/**
+	* 获取客户端IP
+	*
+	*/
+	public static function getClientIP()
+	{
+		$ip = '';
+		if (isset($_SERVER['HTTP_CDN_SRC_IP']) && !empty($_SERVER['HTTP_CDN_SRC_IP'])) {
+			$ip = $_SERVER['HTTP_CDN_SRC_IP'];
+		} elseif (isset($_SERVER['HTTP_CLIENT_IP']) && !empty($_SERVER['HTTP_CLIENT_IP'])) {
+			$ip = $_SERVER['HTTP_CLIENT_IP'];
+		} elseif (isset($_SERVER['HTTP_X_FORWARDED_FOR']) && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+			$arr = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+			$pos = array_search('unknown', $arr);
+			if ($pos !== false) {
+				unset($arr[$pos]);
+			}
+			$ip = trim($arr[0]);
+		} elseif (isset($_SERVER['REMOTE_ADDR'])) {
+			$ip = $_SERVER['REMOTE_ADDR'];
+		}
+		return $ip;
+	}
+
+	/**
+	* 创建文件夹
+	* @param $dir 要创建的目录
+	*/
+	public static function mkdirs($dir)
+	{
+		if (is_dir($dir)) {
+			return true;
+		}
+
+		$parent = dirname($dir);
+		if (is_dir($parent) || self::mkdirs($parent)) {
+			return @mkdir($dir, 0777);
+		}
+
+		return false;
+	}
+
+
+	/**
+	* 404错误页
+	*
+	*/
+	public static function notFound()
+	{
+		ob_get_clean();
+		header('HTTP/1.0 404 Not Found');
+		include SMARTY_TEMPLATE_DIR . '/error/404.html';
+		exit;
 	}
 }

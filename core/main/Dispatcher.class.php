@@ -1,5 +1,8 @@
 <?php
-
+/**
+* 实例化controller类，执行action方法
+*
+*/
 class Dispatcher
 {
 	public static function dispatch(Router $router)
@@ -17,7 +20,9 @@ class Dispatcher
 			// $output = ob_get_clean();
 			// echo $output;
 		} else {
-			throw new Exception('Controller not found. className:['.$className.']');
+			// throw new Exception('Controller not found. className:['.$className.']');
+			Log::fatal('Controller not found. className:[%s]', var_export($className,1));
+			trigger_error('Controller not found. className:[' . var_export($className,1) . ']', E_USER_ERROR);
 		}
 	}
 }
