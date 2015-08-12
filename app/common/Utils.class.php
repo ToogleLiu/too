@@ -43,32 +43,58 @@ class Utils
 	* @param $max 最大值
 	* @return bool 为true表示验证通过，false反之
 	*/
+	// public static function check_int($value, $min = NULL, $max = NULL)
+	// {
+	// 	if (!preg_match('/^\d+$/', $value)) {
+	// 		return false;
+	// 	}
+
+	// 	if (!is_null($min) && is_null($max)) {
+	// 		if ($value >= $min) {
+	// 			return true;
+	// 		} else {
+	// 			return false;
+	// 		}
+	// 	} elseif (is_null($min) && !is_null($max)) {
+	// 		if ($value <= $max) {
+	// 			return true;
+	// 		} else {
+	// 			return false;
+	// 		}
+	// 	} elseif (!is_null($min) && !is_null($max)) {
+	// 		if ($value >= $min && $value <= $max) {
+	// 			return true;
+	// 		} else {
+	// 			return false;
+	// 		}
+	// 	} else {
+	// 		return true;
+	// 	}
+	// }
+
+	/**
+	* 验证是否为整数，若传了$min, $max 则表示$min <= $value <= $max
+	* @param $value 需要验证的值
+	* @param $min 最小值
+	* @param $max 最大值
+	* @return bool 为true表示验证通过，false反之
+	*/
 	public static function check_int($value, $min = NULL, $max = NULL)
 	{
-		if (!preg_match('/^\d+$/', $value)) {
-			return false;
+		
+		$int_options = array('options' => array());
+
+		if (!is_null($min)) {
+			$int_options['options']['min_range'] = $min;
+		}
+		if (!is_null($max)) {
+			$int_options['options']['max_range'] = $max;
 		}
 
-		if (!is_null($min) && is_null($max)) {
-			if ($value >= $min) {
-				return true;
-			} else {
-				return false;
-			}
-		} elseif (is_null($min) && !is_null($max)) {
-			if ($value <= $max) {
-				return true;
-			} else {
-				return false;
-			}
-		} elseif (!is_null($min) && !is_null($max)) {
-			if ($value >= $min && $value <= $max) {
-				return true;
-			} else {
-				return false;
-			}
-		} else {
+		if (($var = filter_var($value, FILTER_VALIDATE_INT, $int_options)) !== FALSE) {
 			return true;
+		} else {
+			return false;
 		}
 	}
 
